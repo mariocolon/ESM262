@@ -1,0 +1,177 @@
+---
+title: "ESM262_Assignment1_Data Wrangling"
+author: "Mario Colon"
+date: "4/30/2019"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+###1. Import and Tidy
+
+
+```{r message=FALSE, warning = FALSE}
+
+library(tidyverse)
+
+#Read in raw data
+
+parcels_raw <-
+  read_delim(
+    "Santa_Barbara_County_parcels_2011.csv.zip",
+    delim = ",",
+    col_types = cols(.default = col_character())
+  )
+
+#str(parcels_raw)
+
+#APN (Chr), Situs1 (Chr), Situs2 (Chr), Acreage(Num), UseCode (Chr), NonTaxCode (Chr), AgPres (Chr), LandValue (Num), Net_Impr (Num), Net_AV (Num), M_Address1 (Chr), M_Address2 (Chr)
+
+#Copy and convert 
+
+parcels <- transmute(parcels_raw,
+                    Parcel_Number = parse_character(APN, na = "Unknown"),
+                    Short_Address = parse_character(Situs1, na = "Unknown"),
+                    Long_Address = parse_character(Situs2, na = "Unknown"),
+                    Acre = parse_number(Acreage, na = "0"),
+                    UseCode = parse_character(UseCode, na = "Unknown"),
+                    Non_Tax_Property = parse_character(NonTaxCode),
+                    Ag_Preserve_Num = parse_character(AgPres), 
+                    Land_Value = parse_number(LandValue, na = "0"), 
+                    Improvement_Value = parse_number(Net_Impr, na = "0"), 
+                    Total_Value = parse_number(Net_AV),
+                    Address1 = parse_character(M_Address1, na = "Unknown"), 
+                    Address2 = parse_character(M_Address2, na = "Unknown")
+                    )
+
+#str(parcels)
+
+#Write csv file 
+
+parcels <- write_delim(parcels,
+  "parcels.csv",
+  delim = "|",
+  na = ""
+)
+
+
+```
+
+###2. Analyze 
+
+####What are the 10 most-frequently-occuring land uses (in descending order)?
+*Hint: Load the UseCodes into a separate tibble, then join it to the parcels tibble.*
+
+
+```{r message=FALSE, warning = FALSE}
+#read in UseCodes file
+use_code <- read_delim("UseCodes.csv", delim = "|")
+
+#subset and merge with UseCode to determine 10 most-frequently-occuring land
+land_use <- parcels %>% 
+  left_join(use_code, by = "UseCode") %>% 
+  filter(!is.na(UseCode)) %>% 
+  group_by(UseCode, CodeDesc) %>% 
+  select(UseCode, CodeDesc) %>% 
+  count(UseCode) %>% 
+  arrange(desc(n)) %>% 
+  head(n = 10)
+
+land_use  
+
+```
+
+####How many acres are in agricultural preserves?
+*Assume agricultural preserves are indicated by non-NA values for AgPres.*
+
+```{r message=FALSE, warning = FALSE}
+#subset based on Ag_Preserve_Num, remove NA for that number to remove non-agricultural preserve parcels 
+ag_preserve <- parcels %>% 
+  left_join(use_code, by = "UseCode") %>%
+  filter(Ag_Preserve_Num != "NA") %>%
+  filter(Acre != "NA")
+  
+sum(ag_preserve$Acre) 
+
+  
+```
+
+
+####What is the mean net assessed value per acre of the entire county?
+*i.e., as if the entire county were a single parcel.*
+
+```{r message=FALSE, warning = FALSE}
+
+#subset Total_Value and Acre as two variables of interest
+mean_net_value_county <- parcels %>% 
+  left_join(use_code, by = "UseCode") %>%
+  select("Total_Value", "Acre") %>%
+  filter(Acre >=0)
+
+#sum of average total value and acre
+total_value_sum <- sum(mean_net_value_county$Total_Value)
+acre_sum <- sum(mean_net_value_county$Acre)
+
+#divide total value sum by sum of acres
+mean_value_acre <- total_value_sum/acre_sum
+mean_value_acre
+
+```
+
+####What is the total net assessed value of all non-taxable parcels?
+*Assume non-taxable parcels are indicated by non-NA values for NonTaxCode.*
+
+```{r message=FALSE, warning = FALSE}
+
+#remove parcel that non-taxable
+non_tax <-  parcels %>% 
+  filter(!is.na(Non_Tax_Property)) 
+
+#sum value of remaining parcels 
+sum(non_tax$Total_Value)
+
+```
+
+
+####What are the 10 largest property holders, by acreage?
+*Use the complete mailing address for tax statements as a proxy for the parcel owner. Ignore parcels where either component of the address is NA.*
+
+```{r message=FALSE, warning = FALSE}
+
+#Keep only parcels that have full 'M_ADDRESS1' and keep top 10 based on acre size
+prop_owner_acre <- parcels %>% 
+  select(Address1, Acre) %>% 
+  filter(!is.na(Address1)) %>% 
+  group_by(Address1) %>% 
+  summarize(acre_size = sum(Acre)) %>% 
+  arrange(desc(acre_size)) %>% 
+  head(n = 10)
+
+prop_owner_acre
+
+```
+
+
+####What are the 10 largest property holders, by net assessed value?
+
+```{r message=FALSE, warning = FALSE}
+
+#Keep only parcels that have full 'M_ADDRESS1' and keep top 10 based on property value
+prop_owner_net_av <- parcels %>% 
+  select(Address1, Total_Value) %>%  
+  filter(!is.na(Address1)) %>% 
+  group_by(Address1) %>% 
+  summarize(total_value = sum(Total_Value)) %>% 
+  arrange(desc(total_value)) %>% 
+  head(n = 10)
+
+prop_owner_net_av
+
+```
+
