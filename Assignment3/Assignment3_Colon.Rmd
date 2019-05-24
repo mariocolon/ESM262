@@ -1,0 +1,107 @@
+---
+title: "Assignment3"
+author: "Mario Colon"
+date: "5/24/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+#Call in function 
+
+source("autopower.R")
+
+
+```
+
+
+What if we design new highways that have lower rolling coefficients where we reduce the rolling coefficient by 50%
+
+```{r}
+
+#Adjust default value for crolling in the autopower() function from .015 *.5
+crolling_50 = 0.0075 
+
+#set nsamples
+nsample = 1000
+
+#Create dataframe for output of autopower function 
+speeds = rnorm(mean=25, sd=4, n=nsample)
+results_50 = data.frame(speed=speeds, power=NA)
+
+##Generate 3 possible cars with respectvie area and mass
+possible_cars_50 = data.frame(mass=c(31000,45000,38000), area = c(25,30,22))
+possible_cars_50$row = seq(from=1, to=nrow(possible_cars_50))
+possible_cars_50$prob = c(0.4, 0.4, 0.2)
+##Created a large random sample of the three cars   
+whichcar_50 = base::sample(possible_cars_50$row, size=nsample, prob=possible_cars_50$prob, replace=TRUE)
+
+## Populate results_ms DF with the different masses and areas of the three cars.
+results_50$mass = possible_cars_50$mass[whichcar_50]
+results_50$area = possible_cars_50$area[whichcar_50]
+
+#run function
+
+pb_50_crolling <- autopower(V=results_50$speed, m = results_50$mass, A = results_50$area, crolling = crolling_50)
+
+
+```
+
+
+
+Alternatively, we implement a policy that reduce the mean speed from 100 km/h to 80 km/h (still with 10% standard deviation)
+
+```{r}
+
+#Reduce the mean speed from 100 km/h to 80 km/h (still with 10% standard deviation)
+
+mean_speed_high = 100 * 0.277    #100km/hr to m/s
+mean_speed_low = 80 * 0.277  #80km/hr to ms
+
+set.seed(25)
+speeds_1 = rnorm(mean = mean_speed_high, sd=0.1*mean_speed_high, n=nsample)
+speeds_2 = rnorm(mean = mean_speed_low, sd=0.1*mean_speed_low, n=nsample)
+
+#create database for reduced mean speed
+
+#Create dataframe for output of autopower function 
+
+results_2 = data.frame(speed=speeds_2, power=NA)
+
+##Generate 3 possible cars with respectvie area and mass
+possible_cars_2 = data.frame(mass=c(31000,4200,38000), area = c(25,30,22))
+possible_cars_2$row = seq(from=1, to=nrow(possible_cars_2))
+possible_cars_2$prob = c(0.4, 0.4, 0.2)
+##Created a large random sample of the three cars   
+whichcar_2 = base::sample(possible_cars_2$row, size=nsample, prob=possible_cars_2$prob, replace=TRUE)
+
+## Populate results_ms DF with the different masses and areas of the three cars.
+results_2$mass = possible_cars_2$mass[whichcar_2]
+results_2$area = possible_cars_2$area[whichcar_2]
+
+#run function
+
+pb_2_speed <- autopower(V=results_2$speed, m = results_2$mass, A = results_2$area)
+
+
+```
+
+
+```{r}
+#final comparison 
+
+##mean power generation with lower crolling
+mean(pb_50_crolling)
+
+##mean power generation with lower speed 
+mean(pb_2_speed)
+
+```
+
+Given the two potential changes in approaches (road design change vs reduced speed policy), it would seem that a policy of reduced speed to 80km/hr instead of increasing friction as result of road design change is better to reduce energy output by approximately 26,840.80 W.  
+
