@@ -1,0 +1,70 @@
+---
+title: "climate_analysis"
+author: "Mario Colon"
+date: "June 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#load packages
+
+```{r}
+
+library(tidyverse)
+library(dplyr)
+
+```
+
+
+#load in data
+
+```{r}
+
+climate <- read_delim("clim.txt", delim = " ")
+climate
+climate <- select(climate, month, day, year, tmax_c, tmin_c, precip)
+
+climate
+
+```
+#Summarization Functions (two different functions that summarize climate data in some way (your choice - it could be finding a trend, or finding extremes; or even simply mean winter precipitation))
+
+```{r}
+
+#extreme temperatures
+
+source("/extreme_temp.R")
+
+extremes <- extreme_temp(climate$tmax_c, climate$tmin_c, climate$year)
+
+extremes
+  
+```
+```{r}
+
+#mean winter precip 
+
+mean_precip <- mean_precip(climate$precip, climate$year)
+  
+mean_precip
+
+```
+
+#Calculation Functions (two function that calculate some measure of impact (you can really make these up) -so for example you could create a function that computes a heat stress index based on air temperature with parameters that vary with for different species; or a function that estimates water supply from precipitation with parameters that vary to reflect water storage …you can make something up just as long as its somewhat sensible
+
+```{r}
+
+```
+
+
+#Cost Function (one function that estimates the costs of impacts)
+use multi-dimensional arrays in one of your functions
+
+```{r}
+
+```
+
+
